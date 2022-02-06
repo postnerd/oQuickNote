@@ -62,6 +62,7 @@ class EditorViewController {
 			}
 		});
 		this.editorWindow.setWindowButtonVisibility(false); // This way we have a header bar but no buttons to close the window.
+		this.editorWindow.setVisibleOnAllWorkspaces(true); // User can switch between workspaces/desktops and editor will show up if toggled
 		this.editorWindow.loadFile(this.htmlPath);
 
 		this.editorWindow.on("focus", this.#addGlobalShortcuts);
