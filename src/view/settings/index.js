@@ -1,4 +1,4 @@
-import Settings from './Settings.svelte';
+import Settings from "./Settings.svelte";
 
 const settings = new Settings({
 	target: document.body

@@ -12,19 +12,19 @@ const logger = require("../helper/appLogger");
  * To allow changing the settings the appController provides multiple handler functions. Maybe this should be done by pub/sub in the future.
  */
 class SettingsViewController {
-    settingsWindow;
-	
+	settingsWindow;
+
 	htmlPath; // path to html page loaded by the BrowserWindow
 	apiPath; // path to pre-renderer script to expose advanced functionalities
 	handler; // specific handlers provided by the appController to get and store data
 	isDev;
-    
+
 	/**
 	 * Register all ipc handlers to listen for user interactions to change settings.
 	 * 
 	 * @param {object} args Provided by the app controller
 	 */
-    constructor(args) {
+	constructor(args) {
 		logger.track("settingsViewController:constructor:start");
 
 		this.htmlPath = args.htmlPath;
@@ -42,7 +42,7 @@ class SettingsViewController {
 			let newValue = !this.handler.getSettingsData().launchOnStartup;
 
 			this.handler.changeSettingsData("launchOnStartup", newValue);
-			
+
 			return {
 				newValue: newValue
 			};
@@ -52,7 +52,7 @@ class SettingsViewController {
 			let newValue = !this.handler.getSettingsData().darkTheme;
 
 			this.handler.changeSettingsData("darkTheme", newValue);
-			
+
 			return {
 				newValue: newValue
 			};
@@ -67,7 +67,7 @@ class SettingsViewController {
 			if (newValue) {
 				this.handler.changeSettingsData("notePath", newValue[0]);
 			}
-			
+
 			return {
 				newValue: newValue
 			};
@@ -84,10 +84,10 @@ class SettingsViewController {
 				if (isGlobalAppShortcutRegistered) {
 					// Unregister shortcut because the real registration will be handled by the appController as an onChange event when the settings will change 
 					globalShortcut.unregister(shortcutData.accelerator);
-					
+
 					this.handler.changeSettingsData("globalShortcutAccelerator", shortcutData.accelerator);
 					this.handler.changeSettingsData("globalShortcutRepresentation", shortcutData.representation);
-					
+
 					return {
 						newValue: {
 							accelerator: shortcutData.accelerator,
@@ -96,21 +96,21 @@ class SettingsViewController {
 					};
 				}
 				else {
-					logger.error(`Check for new global shortcut faild for '${shortcutData.accelerator}'!`)
+					logger.error(`Check for new global shortcut faild for '${shortcutData.accelerator}'!`);
 					throw new Error(`Check for new global shortcut faild for '${shortcutData.accelerator}'!`);
 				}
-					
+
 			}
 			else if (shortcutData.accelerator === null && shortcutData.representation === null) {
-					this.handler.changeSettingsData("globalShortcutAccelerator", null);
-					this.handler.changeSettingsData("globalShortcutRepresentation", null);
-					
-					return {
-						newValue: {
-							accelerator: shortcutData.accelerator,
-							representation: shortcutData.representation
-						}
-					};
+				this.handler.changeSettingsData("globalShortcutAccelerator", null);
+				this.handler.changeSettingsData("globalShortcutRepresentation", null);
+
+				return {
+					newValue: {
+						accelerator: shortcutData.accelerator,
+						representation: shortcutData.representation
+					}
+				};
 			}
 			else {
 				logger.error("No valid short cut accelerator was provided!");
@@ -119,9 +119,9 @@ class SettingsViewController {
 		});
 
 		logger.track("settingsViewController:constructor:end");
-    }
+	}
 
-    /**
+	/**
 	 * Creates the settings window. This window can be closed by the user and has to be re-created.
 	 */
 	#createSettingsWindow() {
@@ -140,14 +140,14 @@ class SettingsViewController {
 
 		if (this.isDev) {
 			this.settingsWindow.webContents.openDevTools({
-                mode: "undocked"
-            });
+				mode: "undocked"
+			});
 		}
 
 		// We have to take care of the CMD-Q shortcut since it would close the whole app, but we just want to close the window
 		this.settingsWindow.on("focus", this.#addGlobalShortcuts);
-        this.settingsWindow.on("blur", this.#removeGlobalShortcuts);
-		
+		this.settingsWindow.on("blur", this.#removeGlobalShortcuts);
+
 		// Since the user can close the window, we have to delete the reference and unregister the global shortcuts
 		this.settingsWindow.on("closed", () => {
 			logger.debug("Settings window was closed.");
@@ -175,28 +175,28 @@ class SettingsViewController {
 		else {
 			this.#createSettingsWindow();
 		}
-	}
+	};
 
 	/**
 	 * Handles custom behavior of global shortcuts to support a unique behavior of the settings window.
 	 */
 	#addGlobalShortcuts = () => {
 		if (!globalShortcut.isRegistered("Cmd+Q")) {
-            let globalQuitShortcut = globalShortcut.register("Cmd+Q", () => {
-                this.settingsWindow.close();
-            });
-            if (!globalQuitShortcut) {
-                console.log("Couldn't register global shortcut for quitting.");
-            }
-        }
-	}
+			let globalQuitShortcut = globalShortcut.register("Cmd+Q", () => {
+				this.settingsWindow.close();
+			});
+			if (!globalQuitShortcut) {
+				console.log("Couldn't register global shortcut for quitting.");
+			}
+		}
+	};
 
 	/**
 	 * Removes the registered global shortcuts that were only needed for the settings window.
 	 */
 	#removeGlobalShortcuts = () => {
 		globalShortcut.unregister("Cmd+Q");
-	}
+	};
 }
 
 module.exports = SettingsViewController;

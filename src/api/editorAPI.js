@@ -7,7 +7,7 @@ const logger = {
 	debug: (log) => ipcRenderer.invoke("appLog", "debug", log),
 	error: (log) => ipcRenderer.invoke("appLog", "error", log),
 	track: (log) => ipcRenderer.invoke("appLog", "track", log)
-}; 
+};
 
 // Send information that user used global shortcut to save a note from controller to render process
 ipcRenderer.on("saveShortcutPressed", () => {

@@ -70,7 +70,7 @@ const defaultSettings = {
 	"darkTheme": nativeTheme.shouldUseDarkColors ? settingOptions.darkTheme[1].value : settingOptions.darkTheme[0].value,
 	"globalShortcutAccelerator": null,
 	"globalShortcutRepresentation": null
-} 
+};
 
 /**
  * This controller handles the main app logic.
@@ -79,7 +79,7 @@ const defaultSettings = {
  * Communication between different view controllers is handled via passing methods as advanced view functions to each view controller. (In the future this should maybe be done by a pub/sub instance.)
  */
 class AppController {
-    // Holds the electron app object. Is passed by main.js.
+	// Holds the electron app object. Is passed by main.js.
 	electronApp;
 
 	// The appController holds instances of all controllers to handle global communication between different controllers
@@ -87,7 +87,7 @@ class AppController {
 	storeController;
 
 	trayViewController;
-    editorViewController;
+	editorViewController;
 	settingsViewController;
 
 	isDev;
@@ -95,7 +95,7 @@ class AppController {
 	settingOptions;
 	defaultSettings;
 
-    /**
+	/**
 	 * Setting up the app and initialize all needed controllers. 
 	 * 
 	 * @param {object} electronApp It's the electron app object. It also could be get by 'require("electron")', but this way it's clear, only the app controller should interact with it. 
@@ -104,16 +104,16 @@ class AppController {
 	constructor(electronApp, isDev) {
 		logger.track("appController:constructor:start");
 
-        this.electronApp = electronApp;
+		this.electronApp = electronApp;
 		this.isDev = isDev;
 
 		this.settingOptions = settingOptions;
 		this.defaultSettings = defaultSettings;
-		
+
 		// All app files will be in the "app" folder. In an production environment this will be the only folder included, but in development environment we are starting the app from the root folder so we have to extend the appPath 
 		this.appPath = this.electronApp.isPackaged ? this.electronApp.getAppPath() : path.join(this.electronApp.getAppPath(), "app");
 		logger.info(`App path was set to: ${this.appPath}`);
-		
+
 		this.setupSettingsController();
 		this.setupStoreController();
 		this.setupSettingsViewController();
@@ -122,11 +122,11 @@ class AppController {
 		this.setupThemeSupport();
 		this.setupStartupSupport();
 
-        this.electronApp.on("ready", () => {
+		this.electronApp.on("ready", () => {
 			logger.track("appController:electron:ready:start");
 			// This is only done for security reasons
 			this.setupSessionHandling();
-			
+
 			this.setupGlobalShortcutSupport();
 
 			// The editor view will be created as a hidden BrowserWindow, so the user can toggle the visibility in the future
@@ -142,37 +142,37 @@ class AppController {
 		});
 
 		// For security reasons we try to have restrict rules for the browser views, so no other browser windows or webpages could be opened or loaded (shouldn't be that important for local files, but who knows)
-		this.electronApp.on('web-contents-created', (event, contents) => {
+		this.electronApp.on("web-contents-created", (event, contents) => {
 			contents.setWindowOpenHandler(({ url }) => {
-				logger.warn(`'setWindowOpenHandler' was called to open ${url}. Request will be denied!`)
-				return { action: 'deny' }
-			  })
-			
-			contents.on('will-navigate', (event, navigationUrl) => {
+				logger.warn(`'setWindowOpenHandler' was called to open ${url}. Request will be denied!`);
+				return { action: "deny" };
+			});
+
+			contents.on("will-navigate", (event, navigationUrl) => {
 				// We are only allowing the renderer to go to the same URL so the renderer could force a reload of the page
 				if (event.sender.getURL() !== navigationUrl) {
-					logger.warn(`'will-navigate' was called to open ${navigationUrl}. Request will be denied!`)
+					logger.warn(`'will-navigate' was called to open ${navigationUrl}. Request will be denied!`);
 					event.preventDefault();
 				}
 			});
 
-			contents.on('will-attach-webview', (event, webPreferences, params) => {
-				logger.warn(`'will-attach-webview' was called. Request will be denied!`)
+			contents.on("will-attach-webview", (event) => {
+				logger.warn("'will-attach-webview' was called. Request will be denied!");
 				event.preventDefault();
 			});
 		});
-		
+
 		// App will quit automatically if all browser windows are closed
 		this.electronApp.on("will-quit", () => {
-			logger.info("App will quit.")
+			logger.info("App will quit.");
 
 			globalShortcut.unregisterAll();
-			
-			logger.debug("Unregistered all global shortcuts.")
+
+			logger.debug("Unregistered all global shortcuts.");
 		});
 
 		logger.track("appController:constructor:end");
-    }
+	}
 
 	/**
 	 * The SettingsController manages storing the application settings.
@@ -196,9 +196,9 @@ class AppController {
 		}
 
 		const notePath = this.settingsController.getSettingsData().notePath;
-		
+
 		this.storeController = new StoreController(notePath);
-		
+
 		// We have to keep track of the note path, so if the user changes this in settings, we update the storeController.
 		this.settingsController.on("change:notePath", () => {
 			this.storeController.setStorePath(this.settingsController.getSettingsData().notePath);
@@ -215,7 +215,7 @@ class AppController {
 			handler: {
 				getSettingsData: this.settingsController.getSettingsData,
 				changeSettingsData: this.settingsController.changeSetting
-			},		
+			},
 			isDev: this.isDev
 		});
 	}
@@ -241,9 +241,9 @@ class AppController {
 		// We use different icon paths so it's easier in development to distinguish between prod and dev app
 		let iconPath = path.join(this.appPath, "icons", this.isDev ? "trayIconDev.png" : "trayIcon.png");
 		logger.debug(`Tray icon should be located at '${iconPath}'`);
-		
-		this.trayViewController = new TrayViewController(iconPath); 
-		
+
+		this.trayViewController = new TrayViewController(iconPath);
+
 		this.trayViewController.on("tray:showSettingsWindow", this.settingsViewController.showSettingsWindow);
 
 		this.trayViewController.on("tray:toggleEditorWindowVisibility", () => {
@@ -259,7 +259,7 @@ class AppController {
 			this.editorViewController.closeEditorWindow();
 		});
 	}
-	
+
 	/**
 	 * As default we support the system theme option. But user can always change this at the settings page.
 	 */
@@ -287,7 +287,7 @@ class AppController {
 			this.electronApp.setLoginItemSettings({
 				openAtLogin: this.settingsController.getSettingsData().launchOnStartup
 			});
-		});		
+		});
 	}
 
 	/**
@@ -305,7 +305,7 @@ class AppController {
 			// Normally it shouldn't be a problem to register the shortcut because it was tested by the settingsViewController before saving
 			if (!isGlobalShortcutRegistered) {
 				logger.error("Couldn't register global shortcut for toggling app window!");
-			} 
+			}
 			else {
 				logger.debug(`Global shortcut '${globalShortcutAccelerator}' for toggling was registered.`);
 			}
@@ -351,8 +351,8 @@ class AppController {
 		session.defaultSession.setPermissionRequestHandler((webContents, permission, callback) => {
 			logger.warn(`'setPermissionRequestHandler' for permission ${permission} was called. Request will be denied!`);
 			callback(false);
-		});		
+		});
 	}
-};
+}
 
 module.exports = AppController;

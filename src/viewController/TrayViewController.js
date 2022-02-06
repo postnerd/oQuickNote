@@ -9,19 +9,19 @@ const logger = require("../helper/appLogger");
  * User interactions will be emitted so other controllers (especially the appController) can register event handlers.
  */
 class TrayViewController extends EventEmitter {
-    tray;
+	tray;
 
-    /**
+	/**
      * Creates the context menu and register event handlers to emit user interactions.
      * 
      * @param {string} iconPath 
      */
-    constructor(iconPath) {
-        super();
+	constructor(iconPath) {
+		super();
 
-        logger.track("trayViewController:constructor:start");
+		logger.track("trayViewController:constructor:start");
 
-        this.tray = new Tray(iconPath);
+		this.tray = new Tray(iconPath);
 		this.tray.setIgnoreDoubleClickEvents(true);
 
 		const contextMenu = [
@@ -29,29 +29,29 @@ class TrayViewController extends EventEmitter {
 				label: "Settings",
 				accelerator: "Command+,",
 				click: () => {
-                    this.emit("tray:showSettingsWindow");
-                }
+					this.emit("tray:showSettingsWindow");
+				}
 			},
 			{
 				label: "Quit",
 				accelerator: "Command+Q",
-                click: () => {
-                    logger.debug("User want's to quit app via tray menu");
-                    this.emit("tray:quitApp");
-                 }
+				click: () => {
+					logger.debug("User want's to quit app via tray menu");
+					this.emit("tray:quitApp");
+				}
 			}
 		];
 
-        this.tray.on("click", () => {
-            this.emit("tray:toggleEditorWindowVisibility");
-        });
+		this.tray.on("click", () => {
+			this.emit("tray:toggleEditorWindowVisibility");
+		});
 
-        this.tray.on("right-click", () => {
-            this.tray.popUpContextMenu(Menu.buildFromTemplate(contextMenu));
-        });
+		this.tray.on("right-click", () => {
+			this.tray.popUpContextMenu(Menu.buildFromTemplate(contextMenu));
+		});
 
-        logger.track("trayViewController:constructor:end");
-    }
+		logger.track("trayViewController:constructor:end");
+	}
 }
 
 module.exports = TrayViewController;

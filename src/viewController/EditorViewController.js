@@ -13,204 +13,204 @@ const logger = require("../helper/appLogger");
  * To allow saving a note the appController provides a handler function. Maybe this should be done by pub/sub in the future.
  */
 class EditorViewController {
-    editorWindow;
+	editorWindow;
 
 	htmlPath; // path to html page loaded by the BrowserWindow
 	apiPath; // path to pre-renderer script to expose advanced functionalities
 	handler; // specific handlers provided by the appController to get and store data
-    isDev;
-    
-    #appShouldBeClosed = false; // Reflects if it's safe to close the editor window, this should only happen if the app should be closed completely
+	isDev;
 
-    /**
+	#appShouldBeClosed = false; // Reflects if it's safe to close the editor window, this should only happen if the app should be closed completely
+
+	/**
 	 * Register all ipc handlers to listen for user interactions to save a note.
 	 * 
 	 * @param {object} args Provided by the app controller
 	 */
-    constructor(args) {
-        this.htmlPath = args.htmlPath;
-        this.apiPath = args.apiPath;
-        this.handler = args.handler;
-        this.isDev = args.isDev;
+	constructor(args) {
+		this.htmlPath = args.htmlPath;
+		this.apiPath = args.apiPath;
+		this.handler = args.handler;
+		this.isDev = args.isDev;
 
-        ipcMain.handle("storeNote", (event, noteData) => {
-            return this.handler.storeNote(noteData);
-        });
-    }
+		ipcMain.handle("storeNote", (event, noteData) => {
+			return this.handler.storeNote(noteData);
+		});
+	}
 
-    /**
-     * Public method to create the editor window. This should only happen once and is done by the app controller.
-     * 
-     * The browser window can't be closed by the user. It will only be hidden, if it's not needed.
-     */
-    createEditorWindow() {
-        this.editorWindow = new BrowserWindow({
-            show: false,
-            movable: false,
-            fullscreenable: false,
-            resizable: false,
-            minimizable: false,
-            maximizable: false,
-            closable: true,
-            width: 400,
-            height: 400,
-            webPreferences: {
+	/**
+	 * Public method to create the editor window. This should only happen once and is done by the app controller.
+	 * 
+	 * The browser window can't be closed by the user. It will only be hidden, if it's not needed.
+	 */
+	createEditorWindow() {
+		this.editorWindow = new BrowserWindow({
+			show: false,
+			movable: false,
+			fullscreenable: false,
+			resizable: false,
+			minimizable: false,
+			maximizable: false,
+			closable: true,
+			width: 400,
+			height: 400,
+			webPreferences: {
 				preload: this.apiPath,
 				sandbox: true,
 				contextIsolation: true,
 				nodeIntegration: false
 			}
-        });
-        this.editorWindow.setWindowButtonVisibility(false); // This way we have a header bar but no buttons to close the window.
-        this.editorWindow.loadFile(this.htmlPath);
+		});
+		this.editorWindow.setWindowButtonVisibility(false); // This way we have a header bar but no buttons to close the window.
+		this.editorWindow.loadFile(this.htmlPath);
 
-        this.editorWindow.on("focus", this.#addGlobalShortcuts);
-        this.editorWindow.on("blur", () => {
-            // Only hide window, if it's not already hidden by toggling the editor and keep it visible in dev mode for using the dev tools
-            if (this.editorWindow.isVisible() && !this.isDev) {
-                this.#hideEditorWindow();
-            }
-            // But always remove the global shortcuts, if the window is not focused
-            this.#removeGlobalShortcuts();
-        });
+		this.editorWindow.on("focus", this.#addGlobalShortcuts);
+		this.editorWindow.on("blur", () => {
+			// Only hide window, if it's not already hidden by toggling the editor and keep it visible in dev mode for using the dev tools
+			if (this.editorWindow.isVisible() && !this.isDev) {
+				this.#hideEditorWindow();
+			}
+			// But always remove the global shortcuts, if the window is not focused
+			this.#removeGlobalShortcuts();
+		});
 
-        if (this.isDev) {
-            this.editorWindow.webContents.openDevTools({
-                mode: "undocked"
-            });            
-        }
-
-        this.editorWindow.on("close", (event) => {
-            // We only will close the window if the whole app should be closed.
-            if (!this.#appShouldBeClosed) {
-                event.preventDefault();
-            }
-        });
-    }
-
-    /**
-     * Public method to toggle the editor window.
-     * 
-     * @param {object} trayBounds Position of the tray icon so we can set the right position of the editor nearby.
-     */
-	toggleEditorWindowVisibility = (trayBounds) => {
-		if (this.editorWindow.isVisible()) {
-            this.#hideEditorWindow();
+		if (this.isDev) {
+			this.editorWindow.webContents.openDevTools({
+				mode: "undocked"
+			});
 		}
-		else {
-            this.#showEditorWindow(trayBounds);
-		}
+
+		this.editorWindow.on("close", (event) => {
+			// We only will close the window if the whole app should be closed.
+			if (!this.#appShouldBeClosed) {
+				event.preventDefault();
+			}
+		});
 	}
 
-    /**
-     * Public method to force closing the window. A normal close on the browser window will not work since we prevent the default behavior.
-     */
-    closeEditorWindow = () => {
-        logger.debug("Closing the editor window will be forced.");
+	/**
+	 * Public method to toggle the editor window.
+	 * 
+	 * @param {object} trayBounds Position of the tray icon so we can set the right position of the editor nearby.
+	 */
+	toggleEditorWindowVisibility = (trayBounds) => {
+		if (this.editorWindow.isVisible()) {
+			this.#hideEditorWindow();
+		}
+		else {
+			this.#showEditorWindow(trayBounds);
+		}
+	};
 
-        this.#appShouldBeClosed = true;
-        this.editorWindow.close();
-    }
+	/**
+	 * Public method to force closing the window. A normal close on the browser window will not work since we prevent the default behavior.
+	 */
+	closeEditorWindow = () => {
+		logger.debug("Closing the editor window will be forced.");
 
-    /**
-     * Brings the editor to the front. Therefor we have to calculate the position every time to support multiple screens.
-     * 
-     * @param {object} trayBounds 
-     */
-    #showEditorWindow = (trayBounds) => {
-        const appWindowPosition = this.#getCalculatedEditorWindowPosition(trayBounds);
-        this.editorWindow.setPosition(appWindowPosition.x, appWindowPosition.y, false);
-        logger.debug(`Position of the editor window was set to x:${appWindowPosition.x}, y: ${appWindowPosition.y}.`);
+		this.#appShouldBeClosed = true;
+		this.editorWindow.close();
+	};
 
-        this.editorWindow.show();
-    }
-    
-    /**
-     * Will hide the browser window.
-     */
-    #hideEditorWindow = () => {
-        this.editorWindow.hide();
-        logger.debug("Editor window was closed.");  
-    }
+	/**
+	 * Brings the editor to the front. Therefor we have to calculate the position every time to support multiple screens.
+	 * 
+	 * @param {object} trayBounds 
+	 */
+	#showEditorWindow = (trayBounds) => {
+		const appWindowPosition = this.#getCalculatedEditorWindowPosition(trayBounds);
+		this.editorWindow.setPosition(appWindowPosition.x, appWindowPosition.y, false);
+		logger.debug(`Position of the editor window was set to x:${appWindowPosition.x}, y: ${appWindowPosition.y}.`);
 
-    /**
-     * Add a variety of global shortcuts to provide a custom experience for the user.
-     */
-    #addGlobalShortcuts = () => {
-        // User can save a note via short cut.
-        if (!globalShortcut.isRegistered("Cmd+S")) {
-            let globalSaveShortcut = globalShortcut.register("Cmd+S", () => {
-                // Since there is already a way to store a note implemented in the editor we will trigger this way, so the editor is in sync
-                logger.debug("Global shortcut to save a note was pressed! Info will be send via postMessage.");
-                this.editorWindow.webContents.send("saveShortcutPressed");
-            });
-            if (!globalSaveShortcut) {
-                logger.warn("Couldn't register global shortcut for saving.");
-            }
-        }
+		this.editorWindow.show();
+	};
 
-        // Prevents that the whole app will be closed
-        if (!globalShortcut.isRegistered("Cmd+Q")) {
-            let globalQuitShortcut = globalShortcut.register("Cmd+Q", () => {
-                this.#hideEditorWindow();
-            });
-            if (!globalQuitShortcut) {
-                logger.warn("Couldn't register global shortcut for quitting.");
-            }
-        }
+	/**
+	 * Will hide the browser window.
+	 */
+	#hideEditorWindow = () => {
+		this.editorWindow.hide();
+		logger.debug("Editor window was closed.");
+	};
 
-        // Prevents that the whole app will be closed, since there would be no window left
-        if (!globalShortcut.isRegistered("Cmd+W")) {
-            let globalCloseShortcut = globalShortcut.register("Cmd+W", () => {
-                this.#hideEditorWindow();
-            });
-            if (!globalCloseShortcut) {
-                logger.warn("Couldn't register global shortcut for closing.");
-            }
-        } 
+	/**
+	 * Add a variety of global shortcuts to provide a custom experience for the user.
+	 */
+	#addGlobalShortcuts = () => {
+		// User can save a note via short cut.
+		if (!globalShortcut.isRegistered("Cmd+S")) {
+			let globalSaveShortcut = globalShortcut.register("Cmd+S", () => {
+				// Since there is already a way to store a note implemented in the editor we will trigger this way, so the editor is in sync
+				logger.debug("Global shortcut to save a note was pressed! Info will be send via postMessage.");
+				this.editorWindow.webContents.send("saveShortcutPressed");
+			});
+			if (!globalSaveShortcut) {
+				logger.warn("Couldn't register global shortcut for saving.");
+			}
+		}
 
-        if (!this.isDev) {
-            if (!globalShortcut.isRegistered("Cmd+R")) {
-                let globalReloadShortcut = globalShortcut.register("Cmd+R", () => {
-                    // Empty function to prevent reloading the editor in production mode.
-                });
+		// Prevents that the whole app will be closed
+		if (!globalShortcut.isRegistered("Cmd+Q")) {
+			let globalQuitShortcut = globalShortcut.register("Cmd+Q", () => {
+				this.#hideEditorWindow();
+			});
+			if (!globalQuitShortcut) {
+				logger.warn("Couldn't register global shortcut for quitting.");
+			}
+		}
 
-                if (!globalReloadShortcut) {
-                    console.warn("Couldn't register global shortcut for reload.");
-                }  
-            }
-        }
+		// Prevents that the whole app will be closed, since there would be no window left
+		if (!globalShortcut.isRegistered("Cmd+W")) {
+			let globalCloseShortcut = globalShortcut.register("Cmd+W", () => {
+				this.#hideEditorWindow();
+			});
+			if (!globalCloseShortcut) {
+				logger.warn("Couldn't register global shortcut for closing.");
+			}
+		}
 
-        logger.debug("Global shortcuts for editor window were set.");
-    }
+		if (!this.isDev) {
+			if (!globalShortcut.isRegistered("Cmd+R")) {
+				let globalReloadShortcut = globalShortcut.register("Cmd+R", () => {
+					// Empty function to prevent reloading the editor in production mode.
+				});
 
-    /**
-     * Removes global shortcuts so the user can use shortcuts like CMD-Q again.
-     */
-    #removeGlobalShortcuts() {
-        globalShortcut.unregister("Cmd+S");
-        globalShortcut.unregister("Cmd+Q");
-        globalShortcut.unregister("Cmd+W");
-        globalShortcut.unregister("Cmd+R");
+				if (!globalReloadShortcut) {
+					console.warn("Couldn't register global shortcut for reload.");
+				}
+			}
+		}
 
-        logger.debug("Global shortcuts for editor window were removed.");
-    }
+		logger.debug("Global shortcuts for editor window were set.");
+	};
 
-    /**
-     * Calculates the position for the editor window.
-     * 
-     * @param {object} trayBounds 
-     * @returns {object} // Information where to set the editor window
-     */
-    #getCalculatedEditorWindowPosition(trayBounds) {
-        const windowBounds = this.editorWindow.getBounds();
-        const x = Math.round(trayBounds.x + (trayBounds.width) - (windowBounds.width));
-        const y = Math.round(trayBounds.y + trayBounds.height);
+	/**
+	 * Removes global shortcuts so the user can use shortcuts like CMD-Q again.
+	 */
+	#removeGlobalShortcuts() {
+		globalShortcut.unregister("Cmd+S");
+		globalShortcut.unregister("Cmd+Q");
+		globalShortcut.unregister("Cmd+W");
+		globalShortcut.unregister("Cmd+R");
 
-        logger.debug(`Window position is x:${windowBounds.x}, y:${windowBounds.y}. Current size of the window width:${windowBounds.width}, height:${windowBounds.height}.`)
+		logger.debug("Global shortcuts for editor window were removed.");
+	}
 
-        return {x, y};
-    }
-};
+	/**
+	 * Calculates the position for the editor window.
+	 * 
+	 * @param {object} trayBounds 
+	 * @returns {object} // Information where to set the editor window
+	 */
+	#getCalculatedEditorWindowPosition(trayBounds) {
+		const windowBounds = this.editorWindow.getBounds();
+		const x = Math.round(trayBounds.x + (trayBounds.width) - (windowBounds.width));
+		const y = Math.round(trayBounds.y + trayBounds.height);
+
+		logger.debug(`Window position is x:${windowBounds.x}, y:${windowBounds.y}. Current size of the window width:${windowBounds.width}, height:${windowBounds.height}.`);
+
+		return {x, y};
+	}
+}
 
 module.exports = EditorViewController;
