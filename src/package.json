@@ -1,0 +1,9 @@
+{
+    "name": "o-quick-note-prod",
+    "productName": "oQuickNote",
+    "description": "Make a quick note and save it to your obsidian vault or local machine.",
+    "version": "0.1.0-alpha",
+    "author": "postnerd",
+    "main": "main/main.js"
+  }
+  
