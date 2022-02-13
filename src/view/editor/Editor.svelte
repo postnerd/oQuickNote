@@ -55,7 +55,9 @@
 		{docObject.length} chars
 	</div>
 
-	<FloatingButton clickHandler={saveNote} bottom="40px" disabled={docObject.length ? false:true} isTransparent="{contentHeight > 300 ? true : false}"/>	
+	<div class="floatingButtonWrapper">
+		<FloatingButton on:click={saveNote} disabled={docObject.length === 0} transparent={contentHeight > 300}/>	
+	</div>
 </main>
 
 <style>
@@ -95,5 +97,11 @@
 
 	.editorWrapper {
 		height: calc(100% - 20px)
+	}
+
+	.floatingButtonWrapper {
+		position: absolute;
+		bottom: 40px;
+		right: 20px;
 	}
 </style>
