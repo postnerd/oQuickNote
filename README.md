@@ -34,7 +34,7 @@ You can package an app on your local machine and use it. This is normally intend
 git clone https://github.com/postnerd/oQuickNote
 cd oquicknote
 npm install
-npm pack
+npm run pack
 ```
 
 You should find an application file at `dist/mac/oQuickNote.app`. 
